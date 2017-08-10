@@ -456,6 +456,12 @@ void Plane::Log_Write_Airspeed(void)
     DataFlash.Log_Write_Airspeed(airspeed);
 }
 
+// Write a THREEPRESSNSR packet
+void Plane::Log_Write_ThreePresSnsr(void)
+{
+    DataFlash.Log_Write_ThreePresSnsr(threepressnsr);
+}
+
 // log ahrs home and EKF origin to dataflash
 void Plane::Log_Write_Home_And_Origin()
 {

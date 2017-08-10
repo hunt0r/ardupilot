@@ -171,6 +171,8 @@ void Plane::init_ardupilot()
 
     // initialise airspeed sensor
     airspeed.init();
+    // intialize the threepressnsr
+    threepressnsr.init();
 
     if (g.compass_enabled==true) {
         bool compass_ok = compass.init() && compass.read();

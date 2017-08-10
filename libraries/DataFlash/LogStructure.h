@@ -597,6 +597,18 @@ struct PACKED log_AIRSPEED {
     bool    use;
 };
 
+struct PACKED log_THREEPRESSNSR {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    float   pres_RM;
+    float   pres_UD;
+    float   pres_LR;
+    float   temp_RM;
+    float   temp_UD;
+    float   temp_LR;
+    bool    healthy;
+};
+
 struct PACKED log_ACCEL {
     LOG_PACKET_HEADER;
     uint64_t time_us;
@@ -916,7 +928,9 @@ Format characters in the format string for binary log messages
     { LOG_RATE_MSG, sizeof(log_Rate), \
       "RATE", "Qffffffffffff",  "TimeUS,RDes,R,ROut,PDes,P,POut,YDes,Y,YOut,ADes,A,AOut" }, \
     { LOG_RALLY_MSG, sizeof(log_Rally), \
-      "RALY", "QBBLLh", "TimeUS,Tot,Seq,Lat,Lng,Alt" }
+				"RALY", "QBBLLh", "TimeUS,Tot,Seq,Lat,Lng,Alt" }, \
+    { LOG_THREEPRESSNSR_MSG, sizeof(log_THREEPRESSNSR), \
+      "THPS", "QffffffB", "TimeUS,P_RM,P_UD,P_LR,T_RM,T_UD,T_LR,H" }
 
 // #if SBP_HW_LOGGING
 #define LOG_SBP_STRUCTURES \
@@ -1032,6 +1046,7 @@ enum LogMessages {
     LOG_GIMBAL3_MSG,
     LOG_RATE_MSG,
     LOG_RALLY_MSG,
+		LOG_THREEPRESSNSR_MSG,
 };
 
 enum LogOriginType {

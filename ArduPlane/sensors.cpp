@@ -119,6 +119,13 @@ void Plane::zero_airspeed(bool in_startup)
     gcs_send_text(MAV_SEVERITY_INFO,"Airspeed calibration started");
 }
 
+void Plane::log_threepressnsr(void)
+{
+    if (threepressnsr.enabled()) {
+        Log_Write_ThreePresSnsr(); // Calls the 6 "get" functions
+    }
+}
+
 // read_battery - reads battery voltage and current and invokes failsafe
 // should be called at 10hz
 void Plane::read_battery(void)

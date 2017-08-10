@@ -1818,6 +1818,23 @@ void DataFlash_Class::Log_Write_Airspeed(AP_Airspeed &airspeed)
     WriteBlock(&pkt, sizeof(pkt));
 }
 
+// Write a THREEPRESSNSR packet
+void DataFlash_Class::Log_Write_ThreePresSnsr(HGM_ThreePresSnsr &threepressnsr)
+{
+    struct log_THREEPRESSNSR pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_THREEPRESSNSR_MSG),
+        time_us       : AP_HAL::micros64(),
+        pres_RM       : threepressnsr.get_pressure_RM(),
+        pres_UD       : threepressnsr.get_pressure_UD(),
+        pres_LR       : threepressnsr.get_pressure_LR(),
+        temp_RM       : threepressnsr.get_temperature_RM(),
+        temp_UD       : threepressnsr.get_temperature_UD(),
+        temp_LR       : threepressnsr.get_temperature_LR(),
+        healthy       : threepressnsr.healthy()
+    };
+    WriteBlock(&pkt, sizeof(pkt));
+}
+
 // Write a Yaw PID packet
 void DataFlash_Class::Log_Write_PID(uint8_t msg_type, const PID_Info &info)
 {

@@ -84,6 +84,7 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
     SCHED_TASK(dataflash_periodic,     50,    400),
     SCHED_TASK(avoidance_adsb_update,  10,    100),
     SCHED_TASK(button_update,           5,    100),
+    SCHED_TASK(log_threepressnsr,      10,    200), // HGM: Wild guess at freq=10, max_time=200
 };
 
 void Plane::setup() 
