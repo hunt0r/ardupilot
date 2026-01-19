@@ -45,6 +45,7 @@
 .DS_Store
 .autotools
 .built
+.cache/clangd/
 .context
 .cproject
 .pydevproject
