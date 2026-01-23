@@ -1,4 +1,6 @@
 ((prog-mode . ((indent-tabs-mode . nil)
+               (show-trailing-whitespace . nil)
+               (dotspacemacs-whitespace-cleanup . changed)
                (tab-width . 4)
                (c-basic-offset . 4)))
  (c-mode . ((mode . C++))))
