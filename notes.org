@@ -101,3 +101,12 @@ Overrides with sub.mode_auto.set_auto_yaw_roi
 (Blimp overrides with a no-op. Why is this commented? Shouldn't I update it?)
 ** Fix in Rover
 ** Fix in Lua scripting?
+* Issue 26892: AP_Mount: mount_open servo output should work for all backends
+Because AP_Param only supports 64 params per object, we need to represent "all params of all SRV channels" via more than one object.
+Thus SRV_Channels contains an array of SRV_Channel objects.
+It is named "obj_channels". Or maybe "channels"? (a pointer to it?) (Looks like both work, point to same thing.)
+It has 32 members.
+
+A "Function" is fundamentally an enum. Conceptually its a thing that an RC channel can do.
+
+Oh, I think this was already done! Have posted in the github issue.
