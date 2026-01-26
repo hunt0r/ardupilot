@@ -729,16 +729,9 @@ def start_vehicle(binary, opts, stuff, spawns=None):
         cmd_name += " (callgrind)"
         cmd.append("valgrind")
         cmd.append("--tool=callgrind")
-    if opts.lldb or opts.lldb_stopped:
+    if opts.lldb:
         cmd_name += " (lldb)"
         cmd.append("lldb")
-        lldb_commands_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        atexit.register(os.unlink, lldb_commands_file.name)
-
-        if not opts.lldb_stopped:
-            lldb_commands_file.write("process launch\n")
-        lldb_commands_file.close()
-        cmd.extend(["-s", lldb_commands_file.name])
         cmd.append("--")
     if opts.strace:
         cmd_name += " (strace)"
@@ -1196,7 +1189,7 @@ group_sim.add_option("--lldb",
 group_sim.add_option("--lldb-stopped",
                      action='store_true',
                      default=False,
-                     help="use ldb for debugging ardupilot (no auto-start)")
+                     help="**HGM DISABLED** (use ldb for debugging, no auto-start)")
 group_sim.add_option("-d", "--delay-start",
                      default=0,
                      type='float',
@@ -1444,11 +1437,15 @@ if cmd_opts.disable_breakpoints:
     print("HGM DISABLED --disable-breakpoints.")
     sys.exit(1)
 
+if cmd_opts.lldb_stopped:
+    print("HGM DISABLED --lldb-stopped.")
+    sys.exit(1)
+
 if cmd_opts.sim_vehicle_sh_compatible and cmd_opts.jobs is None:
     cmd_opts.jobs = 1
 
 # validate parameters
-if cmd_opts.valgrind and (cmd_opts.lldb or cmd_opts.lldb_stopped):
+if cmd_opts.valgrind and cmd_opts.lldb:
     print("May not use valgrind with lldb")
     sys.exit(1)
 
@@ -1456,7 +1453,7 @@ if cmd_opts.valgrind and cmd_opts.callgrind:
     print("May not use valgrind with callgrind")
     sys.exit(1)
 
-if cmd_opts.strace and (cmd_opts.lldb or cmd_opts.lldb_stopped):
+if cmd_opts.strace and cmd_opts.lldb:
     print("May not use strace with lldb")
     sys.exit(1)
 
