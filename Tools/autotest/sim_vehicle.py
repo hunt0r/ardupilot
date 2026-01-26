@@ -735,8 +735,6 @@ def start_vehicle(binary, opts, stuff, spawns=None):
         lldb_commands_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
         atexit.register(os.unlink, lldb_commands_file.name)
 
-        for breakpoint in opts.breakpoint:
-            lldb_commands_file.write("b %s\n" % (breakpoint,))
         if not opts.lldb_stopped:
             lldb_commands_file.write("process launch\n")
         lldb_commands_file.close()
@@ -1207,11 +1205,11 @@ group_sim.add_option("-B", "--breakpoint",
                      type='string',
                      action="append",
                      default=[],
-                     help="add a breakpoint at given location in debugger")
+                     help="**HGM DISABLED** (add a breakpoint at given location in debugger)")
 group_sim.add_option("--disable-breakpoints",
                      default=False,
                      action='store_true',
-                     help="disable all breakpoints before starting")
+                     help="**HGM DISABLED** (disable all breakpoints before starting)")
 group_sim.add_option("-M", "--mavlink-gimbal",
                      action='store_true',
                      default=False,
@@ -1436,6 +1434,14 @@ progress("Start")
 
 if (cmd_opts.gdb or cmd_opts.gdb_stopped):
     print("HGM DISABLED gdb.")
+    sys.exit(1)
+
+if cmd_opts.breakpoint:
+    print("HGM DISABLED --breakpoint.")
+    sys.exit(1)
+
+if cmd_opts.disable_breakpoints:
+    print("HGM DISABLED --disable-breakpoints.")
     sys.exit(1)
 
 if cmd_opts.sim_vehicle_sh_compatible and cmd_opts.jobs is None:
