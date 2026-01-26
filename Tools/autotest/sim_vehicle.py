@@ -706,17 +706,6 @@ def start_CAN_Periph(opts, frame_info):
         # of operator new
         cmd.append("--soname-synonyms=somalloc=nouserintercepts")
         cmd.append("--track-origins=yes")
-    if opts.gdb or opts.gdb_stopped:
-        cmd_name += " (gdb)"
-        cmd.append("gdb")
-        gdb_commands_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        atexit.register(os.unlink, gdb_commands_file.name)
-        gdb_commands_file.write("set pagination off\n")
-        if not opts.gdb_stopped:
-            gdb_commands_file.write("r\n")
-        gdb_commands_file.close()
-        cmd.extend(["-x", gdb_commands_file.name])
-        cmd.append("--args")
     cmd.append(exe)
     if defaults_path is not None:
         cmd.append("--defaults")
@@ -740,23 +729,7 @@ def start_vehicle(binary, opts, stuff, spawns=None):
         cmd_name += " (callgrind)"
         cmd.append("valgrind")
         cmd.append("--tool=callgrind")
-    if opts.gdb or opts.gdb_stopped:
-        cmd_name += " (gdb)"
-        cmd.append("gdb")
-        gdb_commands_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        atexit.register(os.unlink, gdb_commands_file.name)
-
-        for breakpoint in opts.breakpoint:
-            gdb_commands_file.write("b %s\n" % (breakpoint,))
-        if opts.disable_breakpoints:
-            gdb_commands_file.write("disable\n")
-        gdb_commands_file.write("set pagination off\n")
-        if not opts.gdb_stopped:
-            gdb_commands_file.write("r\n")
-        gdb_commands_file.close()
-        cmd.extend(["-x", gdb_commands_file.name])
-        cmd.append("--args")
-    elif opts.lldb or opts.lldb_stopped:
+    if opts.lldb or opts.lldb_stopped:
         cmd_name += " (lldb)"
         cmd.append("lldb")
         lldb_commands_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
@@ -1017,13 +990,13 @@ def start_mavproxy(opts, stuff):
     run_cmd_blocking("Run MavProxy", cmd, env=env)
     progress("MAVProxy exited")
 
-    if opts.gdb:
+    if opts.lldb: # HGM: This was only opts.gdb, but I think it should work for lldb too.
         # in the case that MAVProxy exits (as opposed to being
-        # killed), restart it if we are running under GDB.  This
+        # killed), restart it if we are running under lldb.  This
         # allows ArduPilot to stop (eg. via a very early panic call)
         # and have you debugging session not be killed.
         while True:
-            progress("Running under GDB; restarting MAVProxy")
+            progress("Running under LLDB; restarting MAVProxy")
             run_cmd_blocking("Run MavProxy", cmd, env=env)
             progress("MAVProxy exited; sleeping 10")
             time.sleep(10)
@@ -1213,11 +1186,11 @@ group_sim.add_option("-A", "--sitl-instance-args",
 group_sim.add_option("-G", "--gdb",
                      action='store_true',
                      default=False,
-                     help="use gdb for debugging ardupilot")
+                     help="**HGM DISABLED** (use gdb for debugging)")
 group_sim.add_option("-g", "--gdb-stopped",
                      action='store_true',
                      default=False,
-                     help="use gdb for debugging ardupilot (no auto-start)")
+                     help="**HGM DISABLED** (use gdb for debugging without auto-start)")
 group_sim.add_option("--lldb",
                      action='store_true',
                      default=False,
@@ -1461,24 +1434,24 @@ atexit.register(kill_tasks)
 
 progress("Start")
 
+if (cmd_opts.gdb or cmd_opts.gdb_stopped):
+    print("HGM DISABLED gdb.")
+    sys.exit(1)
+
 if cmd_opts.sim_vehicle_sh_compatible and cmd_opts.jobs is None:
     cmd_opts.jobs = 1
 
 # validate parameters
-if cmd_opts.valgrind and (cmd_opts.gdb or cmd_opts.gdb_stopped or cmd_opts.lldb or cmd_opts.lldb_stopped):
-    print("May not use valgrind with gdb or lldb")
+if cmd_opts.valgrind and (cmd_opts.lldb or cmd_opts.lldb_stopped):
+    print("May not use valgrind with lldb")
     sys.exit(1)
 
 if cmd_opts.valgrind and cmd_opts.callgrind:
     print("May not use valgrind with callgrind")
     sys.exit(1)
 
-if cmd_opts.strace and (cmd_opts.gdb or cmd_opts.gdb_stopped or cmd_opts.lldb or cmd_opts.lldb_stopped):
-    print("May not use strace with gdb or lldb")
-    sys.exit(1)
-
-if (cmd_opts.gdb or cmd_opts.gdb_stopped) and (cmd_opts.lldb or cmd_opts.lldb_stopped):
-    print("May not use lldb with gdb")
+if cmd_opts.strace and (cmd_opts.lldb or cmd_opts.lldb_stopped):
+    print("May not use strace with lldb")
     sys.exit(1)
 
 if cmd_opts.instance < 0:
