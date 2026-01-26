@@ -1687,6 +1687,7 @@ try:
         progress("Waiting for SITL to exit")
         wait_unlimited()
     else:
+        input("Press Enter to continue launching mavproxy...")
         start_mavproxy(cmd_opts, frame_infos)
 except KeyboardInterrupt:
     progress("Keyboard Interrupt received ...")
