@@ -844,7 +844,8 @@ def start_vehicle(binary, opts, stuff, spawns=None):
             c.extend(["--sysid", str(sysid)])
 
         os.chdir(i_dir)
-        run_in_terminal_window(cmd_name, cmd + c)
+        # run_in_terminal_window(cmd_name, cmd + c)
+        progress(f"For emacs: {cmd + c}")
     os.chdir(old_dir)
 
 
