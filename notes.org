@@ -4,6 +4,13 @@
 
 (I had a previous file that I accidentally lost. It had scratch about waf, the build system, etc.)
 
+* SITL
+eeprom.bin is SITL's saved version of previous params, which is reused by default.
+--add-param-file=<path/to/file> for custom parameters.
+--wipe-eeprom to reset to defaults. (And this will auto-save over eeprom.bin.)
+param load <paramfile> to load a whole file of parameters at once. param save <paramfile> to save a copy.
+
+
 * [[https://github.com/ArduPilot/ardupilot/issues/29566][Issue 29566: DO_SET_ROI_LOCATION (195) and DO_SET_ROI_NONE (197) "gimbal device id" fields should be supported]]
 Working on it. Starting with the work by ahmedmsalah99. PR 30678.
 Ok, I don't like that solution. Going my own way.
@@ -110,3 +117,74 @@ It has 32 members.
 A "Function" is fundamentally an enum. Conceptually its a thing that an RC channel can do.
 
 Oh, I think this was already done! Have posted in the github issue.
+* Issue 31102: AP_Mount_Gremsy: Trying to retract the gimbal results in rapid on/off toggling of the retract flag
+This mount was renamed to AP_Mount_MAVLINK.
+The code has changed a bit... I wonder if the issue persists?
+This is as good as any chance to fire up SITL and see if I can repro the issue!
+** Repro in SITL
+SITL works (for plane) on master
+Trigger: retract the gimbal
+Observed: GIMBAL_DEVICE_SET_ATTITUDE {target_system : 1, target_component : 154, flags : 1, ...} toggles fast beween flags == 1, flags == 0.
+This is a mavlink message. How do I print these to the SITL screen?
+--mavlink-gimbal specifies both to mavlink and start_vehicle that a gimbal exists.
+
+Did it work? Does my SITL plane have a gimbal? IDK. Let's source dive.
+
+GIMBAL_DEVICE_SET_ATTITUDE (284): gimbal manager -> gimbal device
+GIMBAL_DEVICE_ATTITUDE_STATUS (285): gimbal broadcast
+
+After digging into SITL, it may require modification to test this. But I'm up for the task!
+*** Condition: natively_supports(MountTargetType::REATRACTED) must be true for my gimbal.
+** The original issue
+GIMBAL_DEVICE_SET_ATTITUDE flip-flops.
+This means AP_Mount_MAVLink is alternating between send_target_retracted and something else (probably send_target_angles).
+(aside: only other use of that flag is in get_gimbal_device_flags() which seems to be reporting GIMBAL_DEV_ATT_STATUS, not commanding)
+That is called one per call to AP_Mount_Backend::send_target_to_gimbal, where
++ natively_supports(MountTargetType::RETRACTED) is TRUE
++ mnt_target.target_type == MountTargetType::RETRACTED
+Good news: send_target_to_gimbal is called at the end of AP_Mount_Backend::update() for many (all?) backends.
+target_type gets set in update_mnt_target() (via its private internal func). If _mode == MAV_MOUNT_MODE_RETRACT.
+Good news: That is called just before send_target_to_gimbal()!!
+So how did _mode get to be MAV_MODE_RETRACT? (set_mode(), but where's that called?)
++ set_mode_to_default() where default mode is RETRACT.
++ AP_Mount::set_mode(mode) where mode is RETRACT.
++ [maybe deprecated] AP_Mount::handle_command_do_mount_configure() where packet says use mode RETRACT.
++ AP_Mount::handle_command_do_gimbal_manager_pitchyaw() where packet flags says use mode RETRACT.
++ AP_Mount::handle_gimbal_manager_set_attitude() where packet flags says use mode RETRACT.
++ AP_Mount::handle_gimbal_manager_set_pitchyaw() where packet flags says use mode RETRACT.
++ [minor] If poi was used, and we're done with that, return to previous mode.
++ [minor] If roi target was cleared, return to default mode which might be RETRACT.
++ AP_Mount_Backend::handle_command_do_mount_control() where packet says new mode is RETRACT.
+So there are multiple ways to set the _mode as RETRACT, and then the regular update does the rest.
+** Unlikely: The flags structure may be at play here. (ref: enum GIMBAL_DEVICE_FLAGS)
+lsb = RETRACT, "takes precedence over all"
+next least significant = NEUTRAL, "precedence over all except RETRACT"
+...
+** AP_Mount_Backend::update() appears to handle retraction?
+every update(), SRV_Channels::move_servo(_open_ids, /*value/*=(_mode == MAV_MOUNT_MODE_RETRACT), /*angle_min*/=0, /*angle_max*/=1)
+And this *is* called by AP_Mount_MAVLink::update(), fwiw.
+** Tracing the update function for AP_Mount_MAVLink
+SRV_Channels::move_servo() to (_mode == MODE_RETRACT). (This might move it, but not what we care about.)
+** To confirm this is not done, I should 'operate the gimbal in a normal way' and then verify no flip-flopping.
+*** Takeoff (presume retracted)
+arm throttle
+mode ... (to takeoff)
+*** Extend the gimbal (maybe with a pointing command to spot 0)
+gimbal mode gps
+*** Point gimbal at spot 1.
+<click spot> gimbal roi [lat lon alt]
+*** Point gimbal at spot 2.
+<click spot> gimbal roi [lat lon alt]
+*** Retract the gimbal. Verify no multiple-messages.
+gimbal mode retract
+*** Extend the gimbal to neutral
+gimbal mode neutral
+*** Try pointing, see if it changes mode.
+all done...
+** Preliminary step: Do the same with a solo gimbal.
+I don't think I can... but learning how to SITL the solo gimbal is good.
+** The start of my reply
+I think this issue should be closed as successful.
+In the time since this issue was created, AP_Mount_Gremsy became AP_Mount_MAVLink (https://github.com/ArduPilot/ardupilot/pull/30643).
+* MAVProxy
+see ~/MAVProxy/notes.org.
