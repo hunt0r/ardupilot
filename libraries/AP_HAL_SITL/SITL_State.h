@@ -70,6 +70,7 @@ private:
     void _fdm_input_local(void);
     void _output_to_flightgear(void);
     void _simulator_servos(struct sitl_input &input);
+    void _set_voltage_and_current_pins(struct sitl_input &input);
     void _fdm_input_step(void);
 
     void wait_clock(uint64_t wait_time_usec);

@@ -218,8 +218,6 @@ protected:
     SITL::Aircraft *sitl_model;
 
     SITL::SIM *_sitl;
-
-    void update_voltage_current(struct sitl_input &input, float throttle);
 };
 
 #endif // CONFIG_HAL_BOARD == HAL_BOARD_SITL
