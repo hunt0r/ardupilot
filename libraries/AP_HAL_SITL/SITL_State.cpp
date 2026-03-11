@@ -213,6 +213,7 @@ void SITL_State::_fdm_input_local(void)
 
     // construct servos structure for FDM
     _simulator_servos(input);
+    _set_voltage_and_current_pins(input);
 
 #if AP_SIM_JSON_MASTER_ENABLED
     // read servo inputs from ride along flight controllers
@@ -368,8 +369,29 @@ void SITL_State::_simulator_servos(struct sitl_input &input)
         }
     }
     _sitl->throttle = throttle;
+}
 
-    update_voltage_current(input, throttle);
+void SITL_State::_set_voltage_and_current_pins(struct sitl_input &input)
+{
+    float voltage = 0;
+    float current = 0;
+
+    if (_sitl->state.battery_voltage > 0) {
+        // FDM provides voltage and current
+        voltage = _sitl->state.battery_voltage;
+        current = _sitl->state.battery_current;
+    } else {
+        // internal sitl model provides voltage and current
+        voltage = sitl_model->get_battery_voltage();
+        current = sitl_model->get_battery_current();
+    }
+
+    // assume 3DR power brick
+    voltage_pin_voltage = voltage / 10.1f;
+    current_pin_voltage = current / 17.0f;
+    // fake battery2 as just a 25% gain on the first one
+    voltage2_pin_voltage = voltage_pin_voltage * 0.25f;
+    current2_pin_voltage = current_pin_voltage * 0.25f;
 }
 
 void SITL_State::init(int argc, char * const argv[])

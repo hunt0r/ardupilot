@@ -105,6 +105,8 @@ protected:
     void calculate_angular_drag_torque(const Vector3f &angular_velocity, const Vector3f &drag_coefficient, Vector3f &torque) const;
     // calculate torque induced by buoyancy foams
     void calculate_buoyancy_torque(Vector3f &torque);
+    // compute and set battery usage
+    void update_battery(const struct sitl_input &input);
 
     Frame *frame;
     Thruster* thrusters;

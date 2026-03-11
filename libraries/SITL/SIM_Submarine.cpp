@@ -121,6 +121,20 @@ void Submarine::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
 }
 
 
+void Submarine::update_battery(const struct sitl_input &input)
+{
+    battery_voltage = sitl->batt_voltage;
+    battery_current = 0;
+    for (uint8_t i=0; i<6; i++) {
+        float pwm = input.servos[i];
+        //printf("i: %d, pwm: %.2f\n", i, pwm);
+        float fraction = fabsf((pwm - 1500) / 500.0f);
+        battery_voltage -= fraction * 0.5f;
+        float draw = fraction * 15;
+        battery_current += draw;
+    }
+}
+
 /**
  * @brief Calculate the torque induced by buoyancy foam
  *
@@ -239,6 +253,7 @@ void Submarine::update(const struct sitl_input &input)
     Vector3f rot_accel;
 
     calculate_forces(input, rot_accel, accel_body);
+    update_battery(input);
 
     update_dynamics(rot_accel);
     update_external_payload(input);

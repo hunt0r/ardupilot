@@ -96,7 +96,8 @@ void Helicopter::update(const struct sitl_input &input)
     float eng_torque = 0;
     float lateral_x_thrust = 0;
     float lateral_y_thrust = 0;
-
+    // for a very simple battery depletion model
+    constexpr float amps_per_newton_thrust = 0.5f;
 
     if (_time_delay == 0) {
         for (uint8_t i = 0; i < 6; i++) {
@@ -152,6 +153,8 @@ void Helicopter::update(const struct sitl_input &input)
         float yaw_cmd = 2.0f * tail_rotor - 1.0f; // convert range to -1 to 1
         float tail_rotor_torque = (21.6f * 2.96f * yaw_cmd - 2.96f * gyro.z) * sq(rpm[0]/nominal_rpm);
         float tail_rotor_thrust =  -1.0f * tail_rotor_torque * izz / tr_dist;  //right pedal produces left body accel
+
+        battery_current = amps_per_newton_thrust * (thrust + tail_rotor_thrust);
 
         // rotational acceleration, in rad/s/s, in body frame
         rot_accel.x = _tpp_angle.x * Lb1s + Lv * velocity_air_bf.y;
@@ -213,6 +216,8 @@ void Helicopter::update(const struct sitl_input &input)
         float vertical_thrust = Zcol * coll * sq(rpm[0]/nominal_rpm) + velocity_air_bf.z * Zw;
         accel_body = Vector3f(lateral_x_thrust, lateral_y_thrust, vertical_thrust);
 
+        battery_current = amps_per_newton_thrust * (lateral_x_thrust + lateral_y_thrust + vertical_thrust);
+
         break;
     }
 
@@ -266,6 +271,7 @@ void Helicopter::update(const struct sitl_input &input)
         lateral_x_thrust = -1.0f * GRAVITY_MSS * (_tpp_angle_1.y + _tpp_angle_2.y) + Xu * velocity_air_bf.x;
         accel_body = Vector3f(lateral_x_thrust, lateral_y_thrust, -(thrust_1 + thrust_2) / mass + velocity_air_bf.z * Zw);
 
+        battery_current = amps_per_newton_thrust * (lateral_x_thrust + lateral_y_thrust + thrust_1 + thrust_2);
 
         break;
     }
@@ -315,10 +321,16 @@ void Helicopter::update(const struct sitl_input &input)
         lateral_x_thrust = (right_thruster_force + left_thruster_force) / mass - GRAVITY_MSS * _tpp_angle.y + Xu * velocity_air_bf.x;
         accel_body = Vector3f(lateral_x_thrust, lateral_y_thrust, -thrust / mass + velocity_air_bf.z * Zw);
 
+        battery_current = amps_per_newton_thrust * (lateral_x_thrust + lateral_y_thrust + thrust);
+
         break;
     }
     }
 
+    battery.maybe_reset(sitl->batt_voltage, sitl->batt_capacity_ah);
+    battery.consume_energy(battery_current);
+    battery_voltage = battery.get_voltage();
+    battery_temperature = battery.get_temperature();
 
     update_dynamics(rot_accel);
     update_external_payload(input);
